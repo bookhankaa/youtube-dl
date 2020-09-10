@@ -59,6 +59,23 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if not check_executable('AtomicParsley', ['-v']):
                 raise EmbedThumbnailPPError('AtomicParsley was not found. Please install.')
 
+            _, thumbnail_file_extension = os.path.splitext(thumbnail_filename)
+            if thumbnail_file_extension in ['.webp']:
+                new_thumbnail_filename = '%s.png' % thumbnail_filename
+                cmd = [
+                    encodeFilename('ffmpeg', True),
+                    encodeArgument('-i'),
+                    encodeFilename(thumbnail_filename, True),
+                    encodeFilename(new_thumbnail_filename, True),
+                ]
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                stdout, stderr = p.communicate()
+                if p.returncode != 0:
+                    msg = stderr.decode('utf-8', 'replace').strip()
+                    raise EmbedThumbnailPPError(msg)
+                os.remove(encodeFilename(thumbnail_filename))
+                thumbnail_filename = new_thumbnail_filename
+
             cmd = [encodeFilename('AtomicParsley', True),
                    encodeFilename(filename, True),
                    encodeArgument('--artwork'),
