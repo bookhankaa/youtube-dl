@@ -41,6 +41,12 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 'Skipping embedding the thumbnail because the file is missing.')
             return [], info
 
+        new_thumbnail_filename = '%s.png' % thumbnail_filename
+        self._downloader.to_screen('[ffmpeg] Converting thumbnail "%s" to PNG' % thumbnail_filename)
+        self.run_ffmpeg(thumbnail_filename, new_thumbnail_filename, [])
+        os.remove(encodeFilename(thumbnail_filename))
+        thumbnail_filename = new_thumbnail_filename
+
         if info['ext'] == 'mp3':
             options = [
                 '-c', 'copy', '-map', '0', '-map', '1',
@@ -58,23 +64,6 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         elif info['ext'] in ['m4a', 'mp4']:
             if not check_executable('AtomicParsley', ['-v']):
                 raise EmbedThumbnailPPError('AtomicParsley was not found. Please install.')
-
-            _, thumbnail_file_extension = os.path.splitext(thumbnail_filename)
-            if thumbnail_file_extension in ['.webp']:
-                new_thumbnail_filename = '%s.png' % thumbnail_filename
-                cmd = [
-                    encodeFilename('ffmpeg', True),
-                    encodeArgument('-i'),
-                    encodeFilename(thumbnail_filename, True),
-                    encodeFilename(new_thumbnail_filename, True),
-                ]
-                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                stdout, stderr = p.communicate()
-                if p.returncode != 0:
-                    msg = stderr.decode('utf-8', 'replace').strip()
-                    raise EmbedThumbnailPPError(msg)
-                os.remove(encodeFilename(thumbnail_filename))
-                thumbnail_filename = new_thumbnail_filename
 
             cmd = [encodeFilename('AtomicParsley', True),
                    encodeFilename(filename, True),
